@@ -71,6 +71,11 @@ dist() {
 		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
 	else
 		python -B setup.py sdist --dist-dir=.
+		if [ ! -e "${SOURCE_PKG}-${UVERSION}.tar.gz" ]; then
+			# Rename -dev to ~dev, setuptools does not like ~
+			mv "$(echo "${SOURCE_PKG}-${UVERSION}".tar.gz | sed 's/~/-/')" \
+				"${SOURCE_PKG}-${UVERSION}.tar.gz"
+		fi
 		mv "${SOURCE_PKG}-${UVERSION}.tar.gz" "${SOURCE_PKG}_${UVERSION}.orig.tar.gz"
 	fi
 }
