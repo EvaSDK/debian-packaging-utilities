@@ -1,0 +1,154 @@
+#!/bin/sh
+# -*- sh -*-
+#
+# This script intends to simplify building debian packages from source
+# repository by wrapping the commonly used upstream packaging system
+# and debian build steps in a few simple options.
+#
+# This script relies on a working, clean and complete usptream
+# packaging and the presence of a debian folder inside the source tree.
+# That constraint may be lifted later.
+# It also relies on a working sbuild setup that should be taken care of
+# with a yet to be written script in order to not bloat this one.
+
+set -e
+
+# PKG INFORMATION
+
+get_version() {
+	sed -n -r 's/Version: //p' "${1}"
+}
+
+get_epoch() {
+	get_version "${1}" | sed -r -n 's/([0-9]+):(.*)-(.*)$/\1/p'
+}
+
+get_upstream_version() {
+	get_version "${1}" | sed -r -n 's/([0-9]+:)?(.*)-(.*)$/\2/p'
+}
+
+get_revision() {
+	get_version "${1}" | sed -r -n 's/([0-9]+:)?(.*)-(.*)$/\3/p'
+}
+
+get_source_name() {
+	sed -n -r 's/Source: //p' "${1}"
+}
+
+get_package_name() {
+	sed -n -r 's/Package: //p' "${1}"
+}
+
+# FILE FUNCTIONS
+
+get_orig_file() {
+	local src_tar dsc_file
+	dsc_file="${SOURCE_PKG}_${OLD_VERSION}.dsc"
+	src_tar="$(find . -type f -name "${SOURCE_PKG}-${UVERSION}.tar.*")"
+
+	# If dsc exists, use it to find origin tarball
+	if [ -f "${dsc_file}" ]; then
+		src_tar="$(sed -r -n "/.orig.tar/ { s/.* //p; q }" "${dsc_file}")"
+	fi
+
+	# If everything else failed, try to find find a .orig.tar.* file
+	if [ -z "${src_tar}" ]; then
+		src_tar="$(find . -type f -name "${SOURCE_PKG}_${UVERSION}.orig.tar.*")"
+	fi
+
+	echo "${src_tar}"
+}
+
+# BUILD STUFF
+
+clean() {
+	:
+}
+
+dist() {
+	# If this is a new debian revision, download .orig tarball
+	if [ "${EPOCH}${UVERSION}" = "${OLD_EPOCH}${OLD_UVERSION}" ]; then
+		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
+	else
+		python -B setup.py sdist --dist-dir=.
+		mv "${SOURCE_PKG}-${UVERSION}.tar.gz" "${SOURCE_PKG}_${UVERSION}.orig.tar.gz"
+	fi
+}
+
+pre_build() {
+	local src_dir orig_file
+
+	src_dir="${SOURCE_PKG}-${UVERSION}"
+	orig_file="$(get_orig_file)"
+
+	mkdir "${src_dir}"
+	tar -C "${src_dir}" \
+		--strip-components=1 \
+		-xf "${orig_file}"
+
+	cp -al debian "${src_dir}"
+	dpkg-source -b "${src_dir}"
+	rm -r "${src_dir}"
+}
+
+build() {
+	# TODO
+	:
+}
+
+post_build() {
+	# RUN LINTIAN AND OTHER POST BUILD STEPS
+	:
+}
+
+# SETUP GLOBAL VARIABLES
+
+setup() {
+	# Extract all needed information from debian packaging
+
+	local changelog_n changelog_n_1
+	changelog_n="$(mktemp)"
+	changelog_n_1="$(mktemp)"
+	dpkg-parsechangelog --count 1 -o0 > "${changelog_n}"
+	dpkg-parsechangelog --count 1 -o1 > "${changelog_n_1}"
+
+	VERSION="$(get_version ${changelog_n})"
+	OLD_VERSION="$(get_version ${changelog_n_1})"
+
+	UVERSION="$(get_upstream_version ${changelog_n})"
+	OLD_UVERSION="$(get_upstream_version ${changelog_n_1})"
+
+	EPOCH="$(get_epoch ${changelog_n})"
+	OLD_EPOCH="$(get_epoch ${changelog_n_1})"
+
+	REVISION="$(get_revision ${changelog_n})"
+	OLD_REVISION="$(get_revision ${changelog_n})"
+
+	SOURCE_PKG="$(get_source_name ${changelog_n})"
+	BINARY_PKG="$(get_package_name debian/control)"
+
+	if [ -z "${RELEASE}" ]; then
+		RELEASE="$(sed -r -n 's/Distribution: //p' "${changelog_n}")"
+	fi
+
+	rm "${changelog_n}" "${changelog_n_1}"
+}
+
+# MAIN
+
+set -- `getopt -u -o a:r: --long arch:,release:, -n "$0" -- "$@"`
+while true ; do
+	case "$1" in
+		-a|--arch) shift; ARCH=$1; shift ;;
+		-r|--release) shift; RELEASE=$1 ; shift ;;
+		--) shift ; break ;;
+		*) echo "Internal error!" ; exit 1 ;;
+	esac
+done
+
+setup
+clean
+dist
+pre_build
+build
+post_build
