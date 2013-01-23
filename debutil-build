@@ -59,6 +59,19 @@ get_orig_file() {
 	echo "${src_tar}"
 }
 
+# MISC HELPERS
+
+has() {
+	local needle=$1
+	shift
+
+	local x
+	for x in "$@"; do
+		[ "${x}" = "${needle}" ] && return 0
+	done
+	return 1
+}
+
 # BUILD STUFF
 
 clean() {
@@ -97,7 +110,39 @@ pre_build() {
 }
 
 build() {
-	# TODO
+	local arch_build arch_list dsc_file sbuild_chroot schroot_list sbuild_opts
+
+	dsc_file="${SOURCE_PKG}_${VERSION}.dsc"
+	schroot_list="$(schroot -l)"
+
+	# Extract target architectures
+	arch_list="$(sed -r -n 's/Architecture: //p' "${dsc_file}" | sort | uniq)"
+
+	# Translate any to supported architectures
+	if has "any" "${arch_list}"; then
+		arch_list="$(echo "${arch_list} $(dpkg-architecture -L)" | \
+			tr -s ' ' '\n' | sed '/any/d' | sort | uniq)"
+	fi
+
+	# Build packages
+	# XXX: maybe it is not useful to check chroot existance at all
+	for arch_build in "${arch_list}"; do
+		sbuild_opts="--nolog --source --dist ${RELEASE}"
+
+		if [ "${arch_build}" = "all" ]; then
+			sbuild_opts="${sbuild_opts} --arch-all --debbuildopt=-A"
+			sbuild_chroot="${RELEASE}-$(dpkg --print-architecture)-sbuild"
+		else
+			sbuild_opts="${sbuild_opts} --arch ${arch_build}"
+			sbuild_chroot="${RELEASE}-${arch_build}-sbuild"
+		fi
+
+		if has "chroot:${sbuild_chroot}" ${schroot_list}; then
+			sbuild ${sbuild_opts} --chroot "${sbuild_chroot}" "${dsc_file}"
+		fi
+	done
+
+	# Handle .changes
 	:
 }
 
