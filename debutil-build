@@ -104,7 +104,7 @@ pre_build() {
 		--strip-components=1 \
 		-xf "${orig_file}"
 
-	cp -al debian "${src_dir}"
+	rsync --archive --cvs-exclude --delete debian/ "${src_dir}"/debian/
 	dpkg-source -b "${src_dir}"
 	rm -r "${src_dir}"
 }
