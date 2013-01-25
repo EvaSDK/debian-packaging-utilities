@@ -75,7 +75,26 @@ has() {
 # BUILD STUFF
 
 clean() {
-	:
+	local binpkg
+	set +e
+
+	rm -r "${SOURCE_PKG}-${UVERSION}"/
+
+	if [ -z "${REVISION}" ]; then
+		rm "${SOURCE_PKG}_${UVERSION}".tar.*
+	else
+		rm "${SOURCE_PKG}_${UVERSION}".orig.tar.*
+		rm "${SOURCE_PKG}_${VERSION}".debian.tar.gz
+	fi
+
+	for binpkg in ${BINARY_PKG} ; do
+		rm "${binpkg}_${VERSION}_"*.deb
+	done
+
+	for fileext in diff.gz changes dsc build ; do
+		rm "${SOURCE_PKG}_${VERSION}"*.${fileext}
+	done
+	set -e
 }
 
 dist() {
