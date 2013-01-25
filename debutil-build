@@ -186,13 +186,24 @@ setup() {
 
 # MAIN
 
-set -- `getopt -u -o a:r: --long arch:,release:, -n "$0" -- "$@"`
+usage() {
+    cat <<EOF
+Usage: $(basename $0) [OPTIONS]
+
+Options:
+  -a, --arch         Target architecture to build for
+  -h, --help         Shows this help message
+  -r, --release      Distribution release to target build for
+
+EOF
+}
+set -- `getopt -u -o a:hr: --long arch:,help,release:, -n "$0" -- "$@"`
 while true ; do
 	case "$1" in
 		-a|--arch) shift; ARCH=$1; shift ;;
 		-r|--release) shift; RELEASE=$1 ; shift ;;
 		--) shift ; break ;;
-		*) echo "Internal error!" ; exit 1 ;;
+		*) usage ; exit 1 ;;
 	esac
 done
 
