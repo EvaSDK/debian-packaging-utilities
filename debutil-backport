@@ -1,0 +1,98 @@
+#!/bin/sh
+# -*- sh -*-
+#
+# This script intends to simplify backporting debian packages by taking care
+# of basic actions.
+# It fetches the package at specified revision and updates changelog according
+# to your target release.
+# Once  you are done with backporting related modifications, just use
+# debutil-build to build the package.
+
+set -e
+
+usage() {
+	cat <<EOF
+Usage: $(basename $0) [OPTIONS] PACKAGE_NAME VERSION RELEASE
+
+Options:
+  -h, --help             Shows this help message
+EOF
+
+    exit 2
+}
+
+# Restore pwd
+restore() {
+	cd "${OLD_PWD}"
+}
+
+get_version() {
+	sed -n -r 's/^Version: //p' "${1}" | head -n1
+}
+
+get_upstream_version() {
+	get_version "${1}" | sed -n -r 's/([0-9]+:)?(.*)-(.*)$/\2/p'
+}
+
+# Prepare backport folder
+prepare() {
+	local uversion source_pkg
+
+	# we are going to fetch a bunch of files, let's put that in a directory
+	OLD_PWD="$(pwd)"
+	
+	mkdir "${PACKAGE}"
+	cd "${PACKAGE}"
+
+    apt-get source ${PACKAGE}=${VERSION}
+
+	dsc_file=$(find . -mindepth 1 -maxdepth 1 -type f -name "*_${VERSION}.dsc")
+	source_pkg="$(sed -n -r 's/^Source: //p' "${dsc_file}")"
+	uversion="$(get_upstream_version "${dsc_file}")"
+
+	cd "${source_pkg}-${uversion}"
+    dch -v "${VERSION}~${BPO}+1" -b \
+        --distribution "${RELEASE}-backports" \
+        --force-distribution \
+        "Backport to ${RELEASE}."
+
+    echo "Please check debian/control"
+    cd ..
+}
+
+# Option parsing
+
+GETOPT=$(getopt -u -o h -l help, -n "$0" -- "$@")
+
+if [ $? != 0 ]; then
+    echo "Try '$(basename $0) --help' for more information."
+    exit 1
+fi
+
+eval set -- "${GETOPT}"
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--) shift; break ;;
+		*) usage ;;
+	esac
+done
+
+if [ $# -ne 3 ]; then
+	usage
+fi
+
+PACKAGE=$1
+VERSION=$2
+RELEASE=$3
+
+case "${RELEASE}" in
+	squeeze) BPO="bpo60" ;;
+	lenny) BPO="bpo50" ;;
+	*) echo "Unknown target" ; exit 1 ;;
+esac
+
+trap restore EXIT
+
+prepare
+
