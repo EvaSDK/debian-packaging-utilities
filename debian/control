@@ -1,0 +1,15 @@
+Source: debian-packaging-utilities
+Section: devel
+Priority: optional
+Maintainer: Julien Castets <castets.j@gmail.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Vcs-Git: https://github.com/EvaSDK/debian-packaging-utilities.git
+Vcs-Browser: https://github.com/EvaSDK/debian-packaging-utilities
+
+Package: debian-packaging-utilities
+Architecture: all
+Depends: dpkg-dev, ${misc:Depends}
+Description: A set of scripts to help build debian packages.
+ This package contains a collection of scripts that make a maintainer life
+ easier.
