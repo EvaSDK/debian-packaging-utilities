@@ -1,4 +1,4 @@
-debian-packaging-utilities (0.0.1) unstable; urgency=low
+debian-packaging-utilities (0.1.0~dev) unstable; urgency=low
 
   * Initial Release.
 

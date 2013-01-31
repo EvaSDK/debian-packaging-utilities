@@ -1,2 +1,2 @@
-debutil-backport /usr/bin
-debutil-build /usr/bin
+debutil-backport usr/bin
+debutil-build usr/bin
