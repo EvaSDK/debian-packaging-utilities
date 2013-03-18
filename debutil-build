@@ -99,7 +99,7 @@ clean() {
 
 dist() {
 	# If this is a new debian revision, download .orig tarball
-	if [ "${EPOCH}${UVERSION}" = "${OLD_EPOCH}${OLD_UVERSION}" ]; then
+	if [ -z "${UGLY}" -a "${EPOCH}${UVERSION}" = "${OLD_EPOCH}${OLD_UVERSION}" ]; then
 		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
 	else
 		python -B setup.py sdist --dist-dir=.
@@ -216,11 +216,12 @@ Options:
 
 EOF
 }
-set -- `getopt -u -o a:hr: --long arch:,help,release:, -n "$0" -- "$@"`
+set -- `getopt -u -o a:hr:u --long arch:,help,release:,ugly -n "$0" -- "$@"`
 while true ; do
 	case "$1" in
 		-a|--arch) shift; ARCH=$1; shift ;;
 		-r|--release) shift; RELEASE=$1 ; shift ;;
+		-u|--ugly) shift; UGLY="true" ;;
 		--) shift ; break ;;
 		*) usage ; exit 1 ;;
 	esac
