@@ -9,7 +9,7 @@ Vcs-Browser: https://github.com/EvaSDK/debian-packaging-utilities
 
 Package: debian-packaging-utilities
 Architecture: all
-Depends: ${misc:Depends}, dpkg-dev
+Depends: ${misc:Depends}, dpkg-dev, devscripts, libxml2-utils
 Description: Set of scripts to help building debian packages
  This package contains a collection of scripts that make a maintainer life
  easier.

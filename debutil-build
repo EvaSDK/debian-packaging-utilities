@@ -97,17 +97,41 @@ clean() {
 	set -e
 }
 
+dist_uscan() {
+	[ ! -e debian/watch ] && return 1
+
+	uscan --report-status || true
+
+	local upstream_url
+	upstream_url="$(uscan --force-download --download-current-version \
+		--destdir=. --dehs | xmllint --xpath 'string(/dehs/upstream-url)' -)"
+
+	if echo "${upstream_url}" | grep  -q "\.zip$"; then
+		rm -rf "$(echo "${upstream_url}" | sed -r 's|.*/([^/]+\.zip)|\1|')"
+		uscan --force-download --download-current-version --destdir=. --repack
+	fi
+}
+
+dist_setuppy() {
+	[ ! -e ./setup.py ] && return 1
+
+	python -B ./setup.py sdist --dist-dir=.
+	if [ ! -e "${SOURCE_PKG}-${UVERSION}.tar.gz" ]; then
+		# Rename -dev to ~dev, setuptools does not like ~
+		mv "$(echo "${SOURCE_PKG}-${UVERSION}".tar.gz | sed 's/~/-/')" \
+			"${SOURCE_PKG}-${UVERSION}.tar.gz"
+	fi
+}
+
 dist() {
 	# If this is a new debian revision, download .orig tarball
 	if [ -z "${UGLY}" -a "${EPOCH}${UVERSION}" = "${OLD_EPOCH}${OLD_UVERSION}" ]; then
 		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
 	else
-		python -B setup.py sdist --dist-dir=.
-		if [ ! -e "${SOURCE_PKG}-${UVERSION}.tar.gz" ]; then
-			# Rename -dev to ~dev, setuptools does not like ~
-			mv "$(echo "${SOURCE_PKG}-${UVERSION}".tar.gz | sed 's/~/-/')" \
-				"${SOURCE_PKG}-${UVERSION}.tar.gz"
-		fi
+		local method
+		for method in setuppy uscan ; do
+			dist_$method && break
+		done
 		mv "${SOURCE_PKG}-${UVERSION}.tar.gz" "${SOURCE_PKG}_${UVERSION}.orig.tar.gz"
 	fi
 }
