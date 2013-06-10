@@ -112,6 +112,15 @@ dist_uscan() {
 	fi
 }
 
+dist_autotools() {
+    [ ! -e configure.ac -a ! -e configure.in ] && return 1
+
+    [ ! -e configure ] && autoreconf -vif
+
+    ./configure
+    make dist
+}
+
 dist_setuppy() {
 	[ ! -e ./setup.py ] && return 1
 
@@ -129,7 +138,7 @@ dist() {
 		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
 	else
 		local method
-		for method in setuppy uscan ; do
+		for method in setuppy uscan autotools ; do
 			dist_$method && break
 		done
 		mv "${SOURCE_PKG}-${UVERSION}.tar.gz" "${SOURCE_PKG}_${UVERSION}.orig.tar.gz"
