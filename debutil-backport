@@ -87,6 +87,7 @@ VERSION=$2
 RELEASE=$3
 
 case "${RELEASE}" in
+	wheezy) BPO="bpo70" ;;
 	squeeze) BPO="bpo60" ;;
 	lenny) BPO="bpo50" ;;
 	*) echo "Unknown target" ; exit 1 ;;
