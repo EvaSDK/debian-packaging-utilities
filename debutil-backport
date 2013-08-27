@@ -5,7 +5,7 @@
 # of basic actions.
 # It fetches the package at specified revision and updates changelog according
 # to your target release.
-# Once  you are done with backporting related modifications, just use
+# Once you are done with backporting related modifications, just use
 # debutil-build to build the package.
 
 set -e
@@ -18,7 +18,7 @@ Options:
   -h, --help             Shows this help message
 EOF
 
-    exit 2
+	exit 2
 }
 
 # Restore pwd
@@ -40,13 +40,13 @@ prepare() {
 
 	# we are going to fetch a bunch of files, let's put that in a directory
 	OLD_PWD="$(pwd)"
-	
+
 	mkdir "${PACKAGE}"
 	cd "${PACKAGE}"
 
 	apt-get source -t ${FROM_RELEASE} ${PACKAGE}
 
-	dsc_file=$(find . -mindepth 1 -maxdepth 1 -type f -name "*_${VERSION}.dsc")
+	dsc_file="$(find . -mindepth 1 -maxdepth 1 -type f -name "*_${VERSION}.dsc")"
 	source_pkg="$(sed -n -r 's/^Source: //p' "${dsc_file}")"
 	dversion="$(get_version "${dsc_file}")"
 	uversion="$(get_upstream_version "${dsc_file}")"
@@ -57,8 +57,8 @@ prepare() {
 		--force-distribution \
 		"Backport to ${TO_RELEASE}."
 
-    echo "Please check debian/control"
-    cd ..
+	echo "Please check debian/control"
+	cd ..
 }
 
 # Option parsing
@@ -66,8 +66,8 @@ prepare() {
 GETOPT=$(getopt -u -o h -l help, -n "$0" -- "$@")
 
 if [ $? != 0 ]; then
-    echo "Try '$(basename $0) --help' for more information."
-    exit 1
+	echo "Try '$(basename $0) --help' for more information."
+	exit 1
 fi
 
 eval set -- "${GETOPT}"
