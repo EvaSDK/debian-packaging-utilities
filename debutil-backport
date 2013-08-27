@@ -12,7 +12,7 @@ set -e
 
 usage() {
 	cat <<EOF
-Usage: $(basename $0) [OPTIONS] PACKAGE_NAME VERSION RELEASE
+Usage: $(basename $0) [OPTIONS] PACKAGE_NAME FROM_RELEASE TO_RELEASE
 
 Options:
   -h, --help             Shows this help message
@@ -44,17 +44,18 @@ prepare() {
 	mkdir "${PACKAGE}"
 	cd "${PACKAGE}"
 
-    apt-get source ${PACKAGE}=${VERSION}
+	apt-get source -t ${FROM_RELEASE} ${PACKAGE}
 
 	dsc_file=$(find . -mindepth 1 -maxdepth 1 -type f -name "*_${VERSION}.dsc")
 	source_pkg="$(sed -n -r 's/^Source: //p' "${dsc_file}")"
+	dversion="$(get_version "${dsc_file}")"
 	uversion="$(get_upstream_version "${dsc_file}")"
 
 	cd "${source_pkg}-${uversion}"
-    dch -v "${VERSION}~${BPO}+1" -b \
-        --distribution "${RELEASE}-backports" \
-        --force-distribution \
-        "Backport to ${RELEASE}."
+	dch -v "${VERSION}~${BPO}+1" -b \
+		--distribution "${TO_RELEASE}-backports" \
+		--force-distribution \
+		"Backport to ${TO_RELEASE}."
 
     echo "Please check debian/control"
     cd ..
@@ -83,10 +84,10 @@ if [ $# -ne 3 ]; then
 fi
 
 PACKAGE=$1
-VERSION=$2
-RELEASE=$3
+FROM_RELEASE=$2
+TO_RELEASE=$3
 
-case "${RELEASE}" in
+case "${TO_RELEASE}" in
 	wheezy) BPO="bpo70" ;;
 	squeeze) BPO="bpo60" ;;
 	lenny) BPO="bpo50" ;;
@@ -94,6 +95,16 @@ case "${RELEASE}" in
 esac
 
 trap restore EXIT
+
+# Check the package exists in $FROM_RELEASE
+apt-get source --simulate -t ${FROM_RELEASE} ${PACKAGE}
+VERSION="$(LC_ALL=C apt-cache policy -t ${FROM_RELEASE} ${PACKAGE} | sed -n -r 's/.*Candidate: //p')"
+
+if [ -z "${VERSION}" ]; then
+	echo "${PACKAGE} is not available in ${FROM_RELEASE}"
+	apt-cache policy "${PACKAGE}"
+	exit 1
+fi
 
 prepare
 
