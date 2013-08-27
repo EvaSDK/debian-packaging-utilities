@@ -132,13 +132,20 @@ dist_setuppy() {
 	fi
 }
 
+dist_get_orig_source() {
+	grep -q 'get-orig-source' debian/rules || return 1
+
+	./debian/rules get-orig-source
+	mv ${SOURCE_PKG}_${UVERSION}.orig.tar.gz ${SOURCE_PKG}-${UVERSION}.tar.gz
+}
+
 dist() {
 	# If this is a new debian revision, download .orig tarball
 	if [ -z "${UGLY}" -a "${EPOCH}${UVERSION}" = "${OLD_EPOCH}${OLD_UVERSION}" ]; then
 		apt-get source --download-only ${PKG_NAME}=${OLD_VERSION}
 	else
 		local method
-		for method in setuppy uscan autotools ; do
+		for method in setuppy uscan autotools get_orig_source ; do
 			dist_$method && break
 		done
 		mv "${SOURCE_PKG}-${UVERSION}.tar.gz" "${SOURCE_PKG}_${UVERSION}.orig.tar.gz"
