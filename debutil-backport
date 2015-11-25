@@ -88,6 +88,7 @@ FROM_RELEASE=$2
 TO_RELEASE=$3
 
 case "${TO_RELEASE}" in
+        jessie) BP0="bpo80" ;;
 	wheezy) BPO="bpo70" ;;
 	squeeze) BPO="bpo60" ;;
 	lenny) BPO="bpo50" ;;
